@@ -1,0 +1,20 @@
+
+baculadir_passwd: 'testdepass-director'
+bconsole_passwd: 'testdepass-bconsole'
+
+# Bacula Storage config
+baculasd_passwd: 'testdepass-storage'
+
+backups_archive_device: "/opt"
+
+
+
+# Bacula file daemon config
+baculafd_passwd: 'testdepass-filedaemon'
+
+baculafd_storageserver: baculaserver
+
+files:
+  include:
+    - /root
+  exclude: []

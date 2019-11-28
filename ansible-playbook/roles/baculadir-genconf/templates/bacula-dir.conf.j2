@@ -1,0 +1,256 @@
+
+#################################################################################
+#                                                                               #
+#                               ENTITIES                                        #
+#                                                                               #
+#################################################################################
+#
+#
+Director {                            # define myself
+  Name = {{ inventory_hostname_short }}-dir
+  DIRport = 9101                # where we listen for UA connections
+  QueryFile = "/etc/bacula/scripts/query.sql"
+  WorkingDirectory = "/var/lib/bacula"
+  PidDirectory = "/run/bacula"
+  Maximum Concurrent Jobs = 20
+  Password = "{{ baculadir_passwd }}"         # Console password
+  Messages = Daemon
+#  DirAddress = 127.0.0.1
+}
+# Generic catalog service
+Catalog {
+  Name = Catalog
+  dbname = "{{ dbcommon.dbname|default(_dbcommon.dbname) }}";
+  DB Address = "{{ dbcommon.dbserver|default(_dbcommon.dbserver) }}";
+  dbuser = "{{ dbcommon.dbuser|default(_dbcommon.dbuser) }}";
+  dbpassword = "{{ dbcommon.dbpass|default(_dbcommon.dbpass) }}";
+}
+
+{% for storage in groups['baculasd'] %}
+Storage {
+  Name = {{ hostvars[storage]['inventory_hostname_short'] }}-sd
+  Address = {{ hostvars[storage]['inventory_hostname'] }}
+  SDPort = 9103
+  Password = "{{ hostvars[storage]['baculasd_passwd'] }}"
+  Device = BackupDevice
+  Media Type = BackupDisk
+  Maximum Concurrent Jobs = 5
+}
+{% endfor %}
+
+#
+# Restricted console used by tray-monitor to get the status of the director
+#
+Console {
+  Name = {{ inventory_hostname_short }}-mon
+  Password = "{{ bconsole_passwd }}"
+  CommandACL = status, .status
+}
+
+# Reasonable message delivery -- send most everything to email address
+#  and to the console
+Messages {
+  Name = Standard
+  mailcommand = "/usr/sbin/bsmtp -h localhost -f \"\(Bacula\) \<%r\>\" -s \"Bacula: %t %e of %c %l\" %r"
+  operatorcommand = "/usr/sbin/bsmtp -h localhost -f \"\(Bacula\) \<%r\>\" -s \"Bacula: Intervention needed for %j\" %r"
+  mail = root = all, !skipped
+  operator = root = mount
+  console = all, !skipped, !saved
+  append = "/var/log/bacula/bacula.log" = all, !skipped
+  catalog = all
+}
+
+
+#
+# Message delivery for daemon messages (no job).
+Messages {
+  Name = Daemon
+  mailcommand = "/usr/sbin/bsmtp -h localhost -f \"\(Bacula\) \<%r\>\" -s \"Bacula daemon message\" %r"
+  mail = root = all, !skipped
+  console = all, !skipped, !saved
+  append = "/var/log/bacula/bacula.log" = all, !skipped
+}
+
+
+
+#################################################################################
+#                                                                               #
+#                               DEFAULTS                                        #
+#                                                                               #
+#################################################################################
+#
+#
+
+{% for client in groups['baculasd'] %}
+JobDefs {
+  Name = "Backup-{{ hostvars[client]['inventory_hostname_short'] }}"
+  Type = Backup
+  Level = Incremental
+  Accurate = yes
+  Storage = {{ hostvars[client]['inventory_hostname_short'] }}-sd
+  Messages = Standard
+  Pool = Pool
+  Full Backup Pool = PoolFull
+  SpoolAttributes = yes
+  Priority = 10
+  Write Bootstrap = "/var/lib/bacula/%c.bsr"
+}
+JobDefs {
+  Name = "Restore-{{ hostvars[client]['inventory_hostname_short'] }}"
+  Type = Restore
+  Storage = {{ hostvars[client]['inventory_hostname_short'] }}-sd
+  Messages = Standard
+  Pool = Pool
+  SpoolAttributes = yes
+  Priority = 10
+  Write Bootstrap = "/var/lib/bacula/%c.bsr"
+}
+{% endfor %}
+
+
+Pool {
+  Name = Pool
+  Pool Type = Backup
+  Recycle = yes
+  AutoPrune = yes
+  Volume Retention = 60 days
+  Label Format = "${Client}-${JobId}-${Year}${Month}${Day}${Hour}-${Level}.bvol"               # Auto label
+  UseVolumeOnce = yes
+}
+Pool {
+  Name = PoolFull
+  Pool Type = Backup
+  Recycle = yes
+  AutoPrune = yes
+  Volume Retention = 15 days
+  Label Format = "${Client}-${JobId}-${Year}${Month}${Day}${Hour}-${Level}.bvol"               # Auto label
+  UseVolumeOnce = yes
+}
+
+
+# This is the backup of the catalog
+FileSet {
+  Name = "Catalog"
+  Include {
+    Options {
+      signature = MD5
+    }
+    File = "/var/lib/bacula/bacula.sql"
+  }
+}
+
+# Definition of file Virtual Autochanger device
+#Autochanger {
+#  Name = File1
+## Do not use "localhost" here
+#  Address = localhost                # N.B. Use a fully qualified name here
+#  SDPort = 9103
+#  Password = "ICtfYLcALlCkN8pblT9aYlfOhcx3YqLrG"
+#  Device = FileChgr1
+#  Media Type = File1
+#  Maximum Concurrent Jobs = 10        # run up to 10 jobs a the same time
+#  Autochanger = File1                 # point to ourself
+#}
+#
+
+# Backup the catalog database (after the nightly save)
+#Job {
+#  Name = "BackupCatalog"
+#  JobDefs = "DefaultJob"
+#  Level = Full
+#  FileSet="Catalog"
+#  Schedule = "WeeklyCycleAfterBackup"
+#  # This creates an ASCII copy of the catalog
+#  # Arguments to make_catalog_backup.pl are:
+#  #  make_catalog_backup.pl <catalog-name>
+#  RunBeforeJob = "/etc/bacula/scripts/make_catalog_backup.pl MyCatalog"
+#  # This deletes the copy of the catalog
+#  RunAfterJob  = "/etc/bacula/scripts/delete_catalog_backup"
+#  Write Bootstrap = "/var/lib/bacula/%n.bsr"
+#  Priority = 11                   # run after main backup
+#}
+
+#################################################################################
+#                                                                               #
+#                               SCHEDULES                                       #
+#                                                                               #
+#################################################################################
+#
+#
+
+# When to do the backups, full backup on first sunday of the month,
+#  differential (i.e. incremental since full) every other sunday,
+#  and incremental backups other days
+Schedule {
+  Name = "WeeklyCycle"
+  Run = Full 1st sun at 23:05
+  Run = Differential 2nd-5th sun at 23:05
+  Run = Incremental mon-sat at 23:05
+}
+
+# This schedule does the catalog. It starts after the WeeklyCycle
+Schedule {
+  Name = "WeeklyCycleAfterBackup"
+  Run = Full sun-sat at 23:10
+}
+
+
+#################################################################################
+#                                                                               #
+#                               CLIENTS                                         #
+#                                                                               #
+#################################################################################
+#
+#
+
+{% for client in groups['baculafd'] %}
+
+########################    {{ hostvars[client]['inventory_hostname_short'] }}-fd    ########################
+Client {
+  Name = {{ hostvars[client]['inventory_hostname_short'] }}-fd
+  Address = {{ hostvars[client]['inventory_hostname'] }}
+  FDPort = 9102
+  Catalog = Catalog
+  Password = "{{ hostvars[client]['baculafd_passwd'] }}"          # password for FileDaemon
+  File Retention = 60 days            # 60 days
+  Job Retention = 6 months            # six months
+  AutoPrune = yes                     # Prune expired Jobs/Files
+}
+
+Job {
+  Name = "{{ hostvars[client]['inventory_hostname_short'] }}-Backup"
+  Client = {{ hostvars[client]['inventory_hostname_short'] }}-fd
+  JobDefs = "Backup-{{ hostvars[client]['baculafd_storageserver'] }}"
+  FileSet = "{{ hostvars[client]['inventory_hostname_short'] }}-FileSet"
+  Schedule = "WeeklyCycle"
+  Priority = 10
+}
+Job {
+  Name = "{{ hostvars[client]['inventory_hostname_short'] }}-Restore"
+  Client = {{ hostvars[client]['inventory_hostname_short'] }}-fd
+  JobDefs = "Restore-{{ hostvars[client]['baculafd_storageserver'] }}"
+  FileSet = "{{ hostvars[client]['inventory_hostname_short'] }}-FileSet"
+  Where = /tmp/bacula-restores
+}
+
+# List of files to be backed up
+FileSet {
+  Name = "{{ hostvars[client]['inventory_hostname_short'] }}-FileSet"
+  Include {
+    Options {
+      compression = GZIP
+      signature = MD5
+    }
+{% for file in hostvars[client]['files']['include'] %}
+    File = {{ file }}
+{% endfor %}
+  }
+  Exclude {
+{% for file in hostvars[client]['files']['exclude'] %}
+    File = /var/lib/bacula
+{% endfor %}
+  }
+}
+
+{% endfor %}
+

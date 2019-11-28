@@ -1,0 +1,9 @@
+#
+# Task: Install Bacula File Daemon
+#
+
+- name: Install bacula-fd
+  apt:
+    pkg: bacula-fd
+    state: present
+

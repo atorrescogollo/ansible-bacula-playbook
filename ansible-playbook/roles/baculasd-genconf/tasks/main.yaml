@@ -1,0 +1,25 @@
+#
+# Bacula Storage Configuration
+#
+
+- name: Change owner to backup directory {{ backups_archive_device }}
+  file:
+    dest: "{{ item }}"
+    owner: bacula
+    group: bacula
+    mode: 750
+  with_items:
+    - "{{ backups_archive_device }}" 
+
+- name: Template bacula-sd config
+  template:
+    src: bacula-sd.conf.j2
+    dest: /etc/bacula/bacula-sd.conf
+    owner: root
+    group: bacula
+    mode: '0640'
+    backup: yes
+    validate: /usr/sbin/bacula-sd -tf %s
+  notify:
+    - restart bacula-sd
+

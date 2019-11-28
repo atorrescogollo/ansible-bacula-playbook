@@ -1,0 +1,40 @@
+#
+# Master Playbook: Bacula Server Installation
+#
+
+- name: Install bacula-server
+  hosts: baculaserver
+  become: yes
+  roles:
+    - apt-upgrade
+    - baculaserver-install
+
+- name: Configure baculadir entities
+  hosts: baculadir
+  become: yes
+  roles:
+    - baculadir-genconf
+
+- name: Configure bconsole entities
+  hosts: bconsole
+  become: yes
+  roles:
+    - bconsole-genconf
+
+- name: Configure baculasd entities
+  hosts: baculasd
+  become: yes
+  roles:
+    - baculasd-genconf
+
+- name: Install bacula-fd
+  hosts: baculafd
+  become: yes
+  roles:
+    - baculafd-install
+
+- name: Configure baculafd entities
+  hosts: baculafd
+  become: yes
+  roles:
+    - baculafd-genconf

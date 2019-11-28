@@ -1,0 +1,27 @@
+#
+# Inventory Hosts
+#
+
+[baculadir]
+baculaserver.example.com
+
+[baculasd]
+baculaserver.example.com
+
+[bconsole]
+baculaserver.example.com
+
+[baculafd]
+baculaserver.example.com
+server1.example.com
+server2.example.com
+
+[baculaserver:children]
+baculadir
+baculasd
+bconsole
+
+
+[all:vars]
+ansible_ssh_user=atorres
+ansible_ssh_private_key_file=~/.ssh/example.com.id_rsa

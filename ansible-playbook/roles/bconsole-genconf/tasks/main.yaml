@@ -1,0 +1,13 @@
+#
+# Bacula Console Configuration
+#
+
+- name: Template bconsole config
+  template:
+    src: bconsole.conf.j2
+    dest: /etc/bacula/bconsole.conf
+    owner: root
+    group: bacula
+    mode: '0640'
+    backup: yes
+    validate: /usr/sbin/bconsole -tc %s

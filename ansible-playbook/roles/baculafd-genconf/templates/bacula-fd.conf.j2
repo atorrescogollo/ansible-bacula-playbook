@@ -1,0 +1,51 @@
+#
+# Default  Bacula File Daemon Configuration file
+#
+#  For Bacula release 9.4.2 (04 February 2019) -- debian buster/sid
+#
+# There is not much to change here except perhaps the
+# File daemon Name to
+#
+#
+# Copyright (C) 2000-2015 Kern Sibbald
+# License: BSD 2-Clause; see file LICENSE-FOSS
+#
+
+#
+# List Directors who are permitted to contact this File daemon
+#
+{% for director in groups['baculadir'] %}
+Director {
+  Name = {{ hostvars[director]['inventory_hostname_short'] }}-dir
+  Password = "{{ baculafd_passwd }}"
+}
+{% endfor %}
+
+#
+# Restricted Director, used by tray-monitor to get the
+#   status of the file daemon
+#
+#Director {
+#  Name = backup51-mon
+#  Password = "f_W-hX05eJbUx1z0AM6dPEXvNTMY4WxjN"
+#  Monitor = yes
+#}
+
+#
+# "Global" File daemon configuration specifications
+#
+FileDaemon {                          # this is me
+  Name = {{ inventory_hostname_short }}-fd
+  FDport = 9102                  # where we listen for the director
+  WorkingDirectory = /var/lib/bacula
+  Pid Directory = /run/bacula
+  Maximum Concurrent Jobs = 20
+  Plugin Directory = /usr/lib/bacula
+#  FDAddress = {{ ansible_default_ipv4.address }}
+}
+
+# Send all messages except skipped files back to Director
+Messages {
+  Name = Standard
+  director = {{ groups['baculadir'] | map('extract', hostvars, ['inventory_hostname_short']) | map('regex_replace', '^(.*)$', '\\1-dir' )| join(', ') }} = all, !skipped, !restored
+}

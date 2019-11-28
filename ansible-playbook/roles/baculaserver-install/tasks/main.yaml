@@ -1,0 +1,29 @@
+#
+# Task: Install Bacula Server
+#
+# NOTES: bacula-server package installs db through dbconfig-common. In order
+#   to set up the database, you first need to create the config file:
+#      -> bacula-director-pgsql.conf
+#
+
+- name: Install dbconfig-common pkg
+  apt:
+    name: dbconfig-common
+    state: present
+
+- name: Configure database through dbconfig-common
+  template:
+    src: bacula-director-pgsql.conf.j2
+    dest: /etc/dbconfig-common/bacula-director-pgsql.conf
+    owner: root
+    group: root
+    mode: '0700'
+    backup: yes
+
+- name: Install bacula-server and bacula-console pkgs
+  apt:
+    pkg:
+      - bacula-server
+      - bacula-console
+    state: present
+

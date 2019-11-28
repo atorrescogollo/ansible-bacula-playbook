@@ -1,0 +1,16 @@
+#
+# Bacula Director Configuration
+#
+
+- name: Template bacula-dir config
+  template:
+    src: bacula-dir.conf.j2
+    dest: /etc/bacula/bacula-dir.conf
+    owner: root
+    group: bacula
+    mode: '0640'
+    backup: yes
+    validate: /usr/sbin/bacula-dir -tf %s
+  notify:
+    - restart bacula-dir
+

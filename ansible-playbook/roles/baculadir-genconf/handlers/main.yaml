@@ -1,0 +1,15 @@
+#
+# Bacula-fd handlers
+#
+
+- name: reload bacula-dir
+  systemd:
+    name: bacula-dir
+    state: reloaded
+    enabled: yes
+
+- name: restart bacula-dir
+  systemd:
+    name: bacula-dir
+    state: restarted
+    enabled: yes

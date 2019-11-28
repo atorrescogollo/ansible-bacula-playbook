@@ -1,0 +1,15 @@
+#
+# Bacula File Daemon Configuration
+#
+
+- name: Template bacula-fd config
+  template:
+    src: bacula-fd.conf.j2
+    dest: /etc/bacula/bacula-fd.conf
+    owner: root
+    group: bacula
+    mode: '0640'
+    backup: yes
+    validate: /usr/sbin/bacula-fd -tf %s
+  notify:
+    - restart bacula-fd

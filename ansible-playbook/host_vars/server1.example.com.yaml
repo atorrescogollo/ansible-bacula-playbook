@@ -1,0 +1,10 @@
+
+# Bacula file daemon config
+baculafd_passwd: 'testdepass-filedaemon1'
+
+baculafd_storageserver: baculaserver
+
+files:
+  include:
+    - /home
+  exclude: []

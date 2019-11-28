@@ -1,0 +1,14 @@
+# Server vars
+dbcommon: []
+_dbcommon:
+  dbserver: 'localhost'
+  dbport: '5432'
+  dbc_ssl: 'false'
+
+  dballow: 'localhost'
+
+# DB vars
+  dbadmin: 'postgres'
+  dbname: 'bacula'
+  dbuser: 'bacula'
+  dbpass: 'bacula'
