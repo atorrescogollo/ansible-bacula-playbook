@@ -114,7 +114,7 @@ Pool {
   Recycle = yes
   AutoPrune = yes
   Volume Retention = 60 days
-  Label Format = "${Client}-${JobId}-${Year}${Month}${Day}${Hour}-${Level}.bvol"               # Auto label
+  Label Format = "${Client}-${JobId}-${Year}${Month:p/2/0/r}${Day:p/2/0/r}_${Hour:p/2/0/r}${Minute:p/2/0/r}${Second:p/2/0/r}-${Level}.bvol"               # Auto label
   UseVolumeOnce = yes
 }
 Pool {
@@ -123,7 +123,7 @@ Pool {
   Recycle = yes
   AutoPrune = yes
   Volume Retention = 15 days
-  Label Format = "${Client}-${JobId}-${Year}${Month}${Day}${Hour}-${Level}.bvol"               # Auto label
+  Label Format = "${Client}-${JobId}-${Year}${Month:p/2/0/r}${Day:p/2/0/r}_${Hour:p/2/0/r}${Minute:p/2/0/r}${Second:p/2/0/r}-${Level}.bvol"               # Auto label
   UseVolumeOnce = yes
 }
 
